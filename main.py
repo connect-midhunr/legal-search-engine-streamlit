@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 import os
 import csv
 import re
+import PyPDF2
 
 # function to write a string to a TXT file
 def write_string_to_txt_file(string_content):
@@ -191,7 +192,7 @@ def get_pdf_file_content(pdf_url):
         print("Error fetching content(get_pdf_file_content):", e)
         return None
 
-# save pdf file
+# write pdf file
 def write_pdf_file(folderpath, url):
     try:
         if len(url) > 0:
@@ -199,10 +200,14 @@ def write_pdf_file(folderpath, url):
             pdf_content = get_pdf_file_content(pdf_url)
             filename = pdf_url.split('/')[-1]
             file_path = os.path.join(folderpath, filename)
-                # write the content of the response to a PDF file
+            
+            # write the content of the response to a PDF file
             with open(file_path, 'wb') as f:
                 f.write(pdf_content)
                 print(file_path, "is written.")
+
+            # print("Type of path:", type(file_path))
+            return file_path
     except Exception as e:
         print("Error fetching content(write_pdf_file):", e)
         return None
@@ -221,12 +226,57 @@ def save_pdf_files(case_num, interim_order_url_list, judgement_url):
         if not os.path.exists(interim_orders_folderpath):
             os.makedirs(interim_orders_folderpath)
 
+        interim_order_filename_list = []
         for url in interim_order_url_list:
-            write_pdf_file(interim_orders_folderpath, url)
+            interim_order_filename_list.append(write_pdf_file(interim_orders_folderpath, url))
+            # print('interim_order_filename_list', interim_order_filename_list)
 
-        write_pdf_file(judgement_folderpath, judgement_url)
+        judgement_filename = write_pdf_file(judgement_folderpath, judgement_url)
+        print("PDF files saved successfully...")
+
+        return interim_order_filename_list, judgement_filename
     except Exception as e:
         print("Error fetching content(save_pdf_files):", e)
+        return None
+    
+# function to extract judgement text from the PDF file
+def extract_judgement_text_from_judgement_file(judgement_filename):
+    try:
+        if judgement_filename:
+            # Open the PDF file in binary mode
+            with open(judgement_filename, 'rb') as file:
+                # Create a PDF file reader object
+                pdf_reader = PyPDF2.PdfReader(file)
+                
+                # Initialize an empty string to store the extracted text
+                text = ''
+                # Loop through each page in the PDF
+                for page_num in range(len(pdf_reader.pages)):
+                    # Get the page object
+                    page = pdf_reader.pages[page_num]
+                    
+                    # Extract text from the page
+                    text += page.extract_text()
+
+                if "JUDGMENT" in text:
+                    # Use regular expression to extract the desired text
+                    match = re.search(r'JUDGMENT.*?JUDGMENT(.*?)Sd/-', text, re.DOTALL)
+
+                    if match:
+                        extracted_text = match.group(1).strip()
+                        # Remove extra spaces and line breaks
+                        extracted_text = re.sub(r'\s+', ' ', extracted_text)
+                        # print(extracted_text)
+                    else:
+                        extracted_text = "Text not found"  
+
+                    write_string_to_txt_file(extracted_text)
+                    return extracted_text
+        
+        return ''
+
+    except Exception as e:
+        print("Error fetching content(extract_judgement_text_from_judgement_file):", e)
         return None
     
 # function to extract relevant details from case details table
@@ -377,13 +427,14 @@ def extract_case_details(parameters, case_details_soup, list_of_interim_order_ur
         case_hearings = extract_details_from_case_hearings_table(case_hearings_table)
 
         judgement_table = [table for table in tables if table.find('td', class_='table-header').get_text(strip=True) == 'JUDGMENT']
-        judgement = extract_details_from_judgement_table(judgement_table[0]) if len(judgement_table) > 0 else {'Judgement Date': ''}
+        judgement_date = extract_details_from_judgement_table(judgement_table[0]) if len(judgement_table) > 0 else {'Judgement Date': ''}
 
         document_urls = {'List of Interim Order URLs': list_of_interim_order_urls, 'Judgement URL': judgement_url}
 
-        combined_details = combine_all_dicts([parameters, case_details, acts, petitioner, respondent, case_status, case_hearings, judgement, document_urls])
+        combined_details = combine_all_dicts([parameters, case_details, acts, petitioner, respondent, case_status, case_hearings, judgement_date, document_urls])
         # print(combined_details)
 
+        print("Case details extracted successfully...")
         return combined_details
     except Exception as e:
         print("Error fetching content(extract_case_details):", e)
@@ -405,6 +456,8 @@ def create_csv_dataset(list_of_case_details):
             # Writing data rows to CSV file
             for row in list_of_case_details:
                 writer.writerow(row)
+        
+        print("CSV file generated successfully...")
     except Exception as e:
         print("Error fetching content(create_csv_dataset):", e)
         return None
@@ -418,26 +471,42 @@ if __name__ == '__main__':
         case_types = []
         for option in options[1:]:
             case_types.append((option['value'], option.get_text(strip=True)))
-        
-        search_result_soup = get_case_results_casetype_year(1, 2024)
-        list_of_cinum_casenum = extract_cinum_cnrnum_casenum_casetitle_list(search_result_soup)
-        print('list_of_cinum_casenum:', list_of_cinum_casenum)
-        print()
 
         list_of_case_details = []
-        for parameters in list_of_cinum_casenum:
-            # print("parameters:", parameters)
-            case_details_soup = get_case_details_from_parameters(parameters)
-            # write_string_to_txt_file(case_details_soup.prettify())
-        
-            list_of_interim_order_parameters = extract_token_lookup_rootuser_interim_orders(case_details_soup)
-            judgement_parameters = extract_token_lookup_citationnum_judgement(case_details_soup)
-            list_of_interim_order_urls = generate_interim_order_urls_list(list_of_interim_order_parameters) if list_of_interim_order_parameters is not None else []
-            judgement_url = generate_judgement_url(judgement_parameters) if judgement_parameters is not None else ''
 
-            # save_pdf_files(parameters[1], list_of_interim_order_urls, judgement_url)
+        for case_type in range(1, 11):
 
-            list_of_case_details.append(extract_case_details(parameters, case_details_soup, list_of_interim_order_urls, judgement_url))
-            create_csv_dataset(list_of_case_details)
+            print(f"Process for case type {case_type} started...")
 
+            for year in range(2011, 2025):
+
+                print(f"Process for year {year} started...")
+            
+                search_result_soup = get_case_results_casetype_year(case_type, year)
+                list_of_cinum_casenum = extract_cinum_cnrnum_casenum_casetitle_list(search_result_soup)
+                # print('list_of_cinum_casenum:', list_of_cinum_casenum)
+                print()
+                for parameters in list_of_cinum_casenum:
+                    # print("parameters:", parameters)
+                    case_details_soup = get_case_details_from_parameters(parameters)
+                    # write_string_to_txt_file(case_details_soup.prettify())
+                
+                    list_of_interim_order_parameters = extract_token_lookup_rootuser_interim_orders(case_details_soup)
+                    judgement_parameters = extract_token_lookup_citationnum_judgement(case_details_soup)
+                    list_of_interim_order_urls = generate_interim_order_urls_list(list_of_interim_order_parameters) if list_of_interim_order_parameters is not None else []
+                    judgement_url = generate_judgement_url(judgement_parameters) if judgement_parameters is not None else ''
+
+                    interim_order_filename_list, judgement_filename = save_pdf_files(parameters['CNR Number'], list_of_interim_order_urls, judgement_url)
+                    # judgement_text = extract_judgement_text_from_judgement_file(judgement_filename)
+
+                    list_of_case_details.append(extract_case_details(parameters, case_details_soup, list_of_interim_order_urls, judgement_url))
+
+                    print()
+
+                print(f"Process for year {year} completed...")
+                print()
+
+            print(f"Process for case type {case_type} completed...")
             print()
+
+        create_csv_dataset(list_of_case_details)

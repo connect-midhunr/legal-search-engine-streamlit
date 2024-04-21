@@ -215,7 +215,7 @@ def write_pdf_file(folderpath, url):
 # function to download and save files
 def save_pdf_files(case_num, interim_order_url_list, judgement_url):
     try:
-        root_directory = 'documents'
+        root_directory = 'new_documents'
         case_folder_name = str(case_num)
         interim_orders_folder_name = 'interim orders'
 
@@ -474,7 +474,7 @@ if __name__ == '__main__':
 
         list_of_case_details = []
 
-        for case_type in range(1, 11):
+        for case_type in range(1, 2):
 
             print(f"Process for case type {case_type} started...")
 
@@ -510,3 +510,5 @@ if __name__ == '__main__':
             print()
 
         create_csv_dataset(list_of_case_details)
+
+        

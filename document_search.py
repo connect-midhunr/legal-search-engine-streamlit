@@ -1,5 +1,6 @@
 import csv
 import os
+from dotenv import load_dotenv
 import glob
 import requests
 from bs4 import BeautifulSoup
@@ -10,6 +11,10 @@ import chromadb
 from chromadb.utils import embedding_functions
 
 import time
+
+load_dotenv()
+# embedding_model = os.getenv('EMBEDDING_MODEL')
+db_name = os.getenv('DATABASE_NAME')
 
 # function to convert a CSV file to a list of dictionaries
 def csv_to_list_of_dicts(csv_file):
@@ -151,57 +156,51 @@ def write_document_content_to_txt_file(i, element):
         return None
 
 if __name__ == '__main__':
-    list_of_court_cases = csv_to_list_of_dicts('output.csv')
-    
-    doc_text_list = []
-    metadata_list = []
-    for court_case in list_of_court_cases:
-        case_type = court_case['Case Type']
-        cnr_num = court_case['CNR Number']
-        list_of_interim_order_urls = eval(court_case['List of Interim Order URLs'])
-        judgement_url = court_case['Judgement URL']
-
-        doc_text_list.append(extract_and_join_text_from_pdfs(cnr_num, list_of_interim_order_urls, judgement_url))
-        metadata_list.append({"caseType": str(case_type), "cnr_num": str(cnr_num), "list_of_interim_order_urls": f"{list_of_interim_order_urls}", "judgement_url": str(judgement_url)})
-
-        # print(cnr_num)
-        # print(type(extract_and_join_text_from_pdfs(cnr_num, list_of_interim_order_urls, judgement_url)))
-        # print()
-
-    # print("doc_text_list:", doc_text_list)
-    # print("metadata_list:", metadata_list)
-
     client = chromadb.PersistentClient(path="data")
-    sentence_transformer_ef = embedding_functions.SentenceTransformerEmbeddingFunction(model_name="all-mpnet-base-v2")
-    doc_collection = client.create_collection(name="documents_db", embedding_function=sentence_transformer_ef)
+    # sentence_transformer_ef = embedding_functions.SentenceTransformerEmbeddingFunction(model_name=embedding_model)
+    doc_collection = client.get_or_create_collection(name=db_name)
 
-    doc_collection.add(
-        documents=doc_text_list,
-        metadatas=metadata_list,
-        ids=[f"id_{num}" for num in range(1, len(doc_text_list)+1)]
-    )
+    # list_of_court_cases = csv_to_list_of_dicts('output.csv')
+    # for i, court_case in enumerate(list_of_court_cases):
+    #     case_type = court_case['Case Type']
+    #     cnr_num = court_case['CNR Number']
+    #     list_of_interim_order_urls = eval(court_case['List of Interim Order URLs'])
+    #     judgement_url = court_case['Judgement URL']
+
+    #     print(cnr_num)
+
+    #     doc_collection.add(
+    #         documents=[extract_and_join_text_from_pdfs(cnr_num, list_of_interim_order_urls, judgement_url)],
+    #         metadatas=[{"caseType": str(case_type), "cnr_num": str(cnr_num), "list_of_interim_order_urls": f"{list_of_interim_order_urls}", "judgement_url": str(judgement_url)}],
+    #         ids=[f"id_{i+1}"]
+    #     )
+    #     # print(type(extract_and_join_text_from_pdfs(cnr_num, list_of_interim_order_urls, judgement_url)))
+    #     print()
 
     # print("Peek:", doc_collection.peek())
     print("Count:", doc_collection.count())
     print()
 
-    # keyword = "compensation for collision"
-    # print(f"Searching for '{keyword}'...")
-    # print()
-    # result = doc_collection.query(
-    #     query_texts=keyword,
-    #     n_results=10
-    # )
+    keyword = "nourinmol"
+    print(f"Searching for '{keyword}'...")
+    print()
+    result = doc_collection.query(
+        query_texts=keyword,
+        n_results=10
+    )
     # print("Result:", result['documents'][0])
     # print("Result:", type(result['documents'][0]))
     # print("Result:", len(result['documents'][0]))
     # print()
 
-    # for element in result['metadatas'][0]:
-    #     print(f"Metadata: {element['caseType']} {element['cnr_num']} {eval(element['list_of_interim_order_urls'])} {element['judgement_url']}")
-    #     # print("Metadata:", type(element))
+    for element in result['metadatas'][0]:
+        print(f"Metadata: {element['caseType']} {element['cnr_num']} {eval(element['list_of_interim_order_urls'])} {element['judgement_url']}")
+        print()
+
+    for element in result['ids'][0]:
+        print(element)
     
     # for i, element in enumerate(result['documents'][0]):
     #     write_document_content_to_txt_file(i, element)
 
-    # client.delete_collection(name="documents_db")
+    # client.delete_collection(name="documents_db_mpnet")

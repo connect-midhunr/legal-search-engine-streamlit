@@ -62,7 +62,7 @@ def create_chat_conversation(vector_store):
 
 if __name__ == '__main__':
     client = chromadb.PersistentClient(path='data')
-    sentence_transformer_ef = embedding_functions.SentenceTransformerEmbeddingFunction(model_name=embedding_model)
+    # sentence_transformer_ef = embedding_functions.SentenceTransformerEmbeddingFunction(model_name=embedding_model)
     doc_collection = client.get_collection(name=db_name)
 
     result = doc_collection.get(ids=['id_71'])

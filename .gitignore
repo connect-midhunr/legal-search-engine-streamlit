@@ -161,7 +161,5 @@ cython_debug/
 
 .documents
 documents/
-.data
-data/
 .chroma_db
 chroma_db/

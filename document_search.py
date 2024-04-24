@@ -164,6 +164,7 @@ if __name__ == '__main__':
     # for i, court_case in enumerate(list_of_court_cases):
     #     case_type = court_case['Case Type']
     #     cnr_num = court_case['CNR Number']
+    #     case_title = court_case['Case Title']
     #     list_of_interim_order_urls = eval(court_case['List of Interim Order URLs'])
     #     judgement_url = court_case['Judgement URL']
 
@@ -171,36 +172,42 @@ if __name__ == '__main__':
 
     #     doc_collection.add(
     #         documents=[extract_and_join_text_from_pdfs(cnr_num, list_of_interim_order_urls, judgement_url)],
-    #         metadatas=[{"caseType": str(case_type), "cnr_num": str(cnr_num), "list_of_interim_order_urls": f"{list_of_interim_order_urls}", "judgement_url": str(judgement_url)}],
+    #         metadatas=[{"case_type": str(case_type), "cnr_num": str(cnr_num), "case_title": str(case_title), "list_of_interim_order_urls": f"{list_of_interim_order_urls}", "judgement_url": str(judgement_url)}],
     #         ids=[f"id_{i+1}"]
     #     )
     #     # print(type(extract_and_join_text_from_pdfs(cnr_num, list_of_interim_order_urls, judgement_url)))
     #     print()
 
-    # print("Peek:", doc_collection.peek())
-    print("Count:", doc_collection.count())
-    print()
-
-    keyword = "nourinmol"
-    print(f"Searching for '{keyword}'...")
-    print()
-    result = doc_collection.query(
-        query_texts=keyword,
-        n_results=10
-    )
-    # print("Result:", result['documents'][0])
-    # print("Result:", type(result['documents'][0]))
-    # print("Result:", len(result['documents'][0]))
+    # # print("Peek:", doc_collection.peek())
+    # print("Count:", doc_collection.count())
     # print()
 
-    for element in result['metadatas'][0]:
-        print(f"Metadata: {element['caseType']} {element['cnr_num']} {eval(element['list_of_interim_order_urls'])} {element['judgement_url']}")
-        print()
+    # keyword = "nourinmol"
+    # print(f"Searching for '{keyword}'...")
+    # print()
+    # result = doc_collection.query(
+    #     query_texts=keyword,
+    #     n_results=10
+    # )
+    # # print("Result:", result['documents'][0])
+    # # print("Result:", type(result['documents'][0]))
+    # # print("Result:", len(result['documents'][0]))
+    # # print()
 
-    for element in result['ids'][0]:
-        print(element)
+    # for element in result['metadatas'][0]:
+    #     print(f"Metadata: {element['case_type']} {element['cnr_num']} {element['case_title']} {eval(element['list_of_interim_order_urls'])} {element['judgement_url']}")
+    #     print()
+
+    # for element in result['ids'][0]:
+    #     print(element)
     
     # for i, element in enumerate(result['documents'][0]):
     #     write_document_content_to_txt_file(i, element)
 
-    # client.delete_collection(name="documents_db_mpnet")
+    all_documents = doc_collection.get()
+    list_of_case_titles = [dictionary["case_title"] for dictionary in all_documents['metadatas']]
+    list_of_doc_ids = all_documents['ids']
+    dict_of_options = {list_of_case_titles[num]:list_of_doc_ids[num] for num in range(len(list_of_case_titles))}
+    print(dict_of_options)
+
+    # client.delete_collection(name=db_name)

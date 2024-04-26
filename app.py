@@ -4,7 +4,11 @@ from document_QnA import create_text_chunks, create_vector_store, create_chat_co
 import chromadb
 from chromadb.utils import embedding_functions
 import os
+import sys
 from dotenv import load_dotenv
+
+__import__('pysqlite3')
+sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 
 load_dotenv()
 embedding_model = os.getenv('EMBEDDING_MODEL')

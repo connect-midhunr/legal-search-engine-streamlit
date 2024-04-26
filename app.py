@@ -12,12 +12,15 @@ db_name = os.getenv('DATABASE_NAME')
 openai_api_key = os.getenv('OPENAI_API_KEY')
 huggingfacehub_api_key = os.getenv('HUGGINGFACEHUB_API_TOKEN')
 
-client = chromadb.PersistentClient(path='data')
+# Get the absolute path of the current working directory
+current_directory = os.getcwd()
+
+client = chromadb.PersistentClient(path=f'{current_directory}/data')
 # sentence_transformer_ef = embedding_functions.SentenceTransformerEmbeddingFunction(model_name=embedding_model)
 doc_collection = client.get_collection(name=db_name)
 
 all_documents = doc_collection.get()
-list_of_case_titles = [dictionary["case_title"] for dictionary in all_documents['metadatas']]
+list_of_case_titles = [dictionary['case_title'] for dictionary in all_documents['metadatas']]
 list_of_doc_ids = all_documents['ids']
 dict_of_options = {list_of_case_titles[num]:list_of_doc_ids[num] for num in range(len(list_of_case_titles))}
 
@@ -58,6 +61,7 @@ if __name__ == '__main__':
             text_chunks = create_text_chunks(doc_text)
             vector_store = create_vector_store(text_chunks)
             st.session_state.conversation = create_chat_conversation(vector_store)
+
     user_question = st.text_input("Ask a question about your documents:")
     if user_question:
         generate_chat_from_user_question(user_question)

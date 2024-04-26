@@ -1,14 +1,14 @@
+__import__('pysqlite3')
+import sys
+sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+
 import streamlit as st
 from components import css, user_template, bot_template
 from document_QnA import create_text_chunks, create_vector_store, create_chat_conversation
 import chromadb
 from chromadb.utils import embedding_functions
 import os
-import sys
 from dotenv import load_dotenv
-
-__import__('pysqlite3')
-sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 
 load_dotenv()
 embedding_model = os.getenv('EMBEDDING_MODEL')

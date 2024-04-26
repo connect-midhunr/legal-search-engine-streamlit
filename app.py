@@ -3,7 +3,7 @@ import sys
 sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 
 import streamlit as st
-from components import css, user_template, bot_template
+from components import css, header_template, user_template, bot_template
 from document_QnA import create_text_chunks, create_vector_store, create_chat_conversation
 import chromadb
 from chromadb.utils import embedding_functions
@@ -51,16 +51,15 @@ if __name__ == '__main__':
     st.set_page_config(page_title="Legal Docs QnA", page_icon=":robot:")
     st.write(css, unsafe_allow_html=True)
 
-    col1, col2, col3 = st.columns(3)
-    
-    with col2:
-        st.image(f'{current_directory}/images/collabll-logo.png')
-        st.header("Legal Docs QnA")
-
     if "conversation" not in st.session_state:
         st.session_state.conversation = None
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = None
+
+    col1, col2, col3 = st.columns(3)
+    with col2:
+        st.image(f'{current_directory}/images/collabll-logo.png')
+    st.markdown(header_template.replace("{{MSG}}", "Legal Docs QnA"),unsafe_allow_html=True)
 
     doc_id = dict_of_options[st.selectbox("Select a case", list(dict_of_options.keys()))]
     if st.button("Process"):

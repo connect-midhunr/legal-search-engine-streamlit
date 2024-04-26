@@ -25,6 +25,12 @@ css = '''
 }
 '''
 
+header_template = """
+<div style="background-color:tomato;padding:10px">
+<h2 style="color:white;text-align:center;">{{MSG}}</h2>
+</div><br><br>
+"""
+
 bot_template = '''
 <div class="chat-message bot">
     <div class="avatar">

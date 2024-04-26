@@ -48,8 +48,13 @@ def get_doc_text(doc_id):
     return doc_text
 
 if __name__ == '__main__':
-    st.set_page_config(page_title="Chat with Court Docs",
-                       page_icon=":books:")
+    col1, col2, col3 = st.columns(3)
+    
+    with col2:
+        st.image(f'{current_directory}/images/collabll-logo.png')
+        st.header("Legal Docs QnA")
+
+    st.set_page_config(page_title="Legal Docs QnA")
     st.write(css, unsafe_allow_html=True)
 
     if "conversation" not in st.session_state:
@@ -57,7 +62,6 @@ if __name__ == '__main__':
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = None
 
-    st.header("Chat with Selected Case")
     doc_id = dict_of_options[st.selectbox("Select a case", list(dict_of_options.keys()))]
     if st.button("Process"):
         with st.spinner("Processing"):

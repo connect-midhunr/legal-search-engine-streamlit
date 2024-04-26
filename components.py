@@ -26,6 +26,7 @@ css = '''
 }
 .chat-message .message {
   width: 85%;
+  padding: 0 1.5rem;
   color: #fff;
 }
 '''

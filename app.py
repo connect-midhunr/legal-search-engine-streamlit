@@ -57,9 +57,6 @@ if __name__ == '__main__':
         st.image(f'{current_directory}/images/collabll-logo.png')
         st.header("Legal Docs QnA")
 
-    st.set_page_config(page_title="Legal Docs QnA", page_icon=":robot:")
-    st.write(css, unsafe_allow_html=True)
-
     if "conversation" not in st.session_state:
         st.session_state.conversation = None
     if "chat_history" not in st.session_state:

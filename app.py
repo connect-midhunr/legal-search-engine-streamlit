@@ -43,7 +43,7 @@ def generate_chat_from_user_question(user_question):
             
 # function to retrieve document text using document id
 def get_doc_text(doc_id):
-    result = doc_collection.get(ids=['id_71'])
+    result = doc_collection.get(ids=[doc_id])
     doc_text = result['documents'][0]
     return doc_text
 

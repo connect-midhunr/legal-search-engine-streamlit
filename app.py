@@ -3,7 +3,7 @@ import sys
 sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 
 import streamlit as st
-from components import css, header_template, user_template, bot_template
+from components import css, header_template, user_template, bot_template, alert_bot_template
 from document_QnA import create_text_chunks, create_vector_store, create_chat_conversation
 import chromadb
 from chromadb.utils import embedding_functions
@@ -30,16 +30,17 @@ dict_of_options = {list_of_case_titles[num]:list_of_doc_ids[num] for num in rang
 
 # function to generate user-to-bot chat
 def generate_chat_from_user_question(user_question):
-    response = st.session_state.conversation({'question': user_question})
-    st.session_state.chat_history = response['chat_history']
+    if st.session_state.conversation:
+        response = st.session_state.conversation({'question': user_question})
+        st.session_state.chat_history = response['chat_history']
 
-    for i, message in enumerate(st.session_state.chat_history):
-        if i % 2 == 0:
-            st.write(user_template.replace(
-                "{{MSG}}", message.content), unsafe_allow_html=True)
-        else:
-            st.write(bot_template.replace(
-                "{{MSG}}", message.content), unsafe_allow_html=True)
+        for i, message in enumerate(st.session_state.chat_history):
+            if i % 2 == 0:
+                st.write(user_template.replace("{{MSG}}", message.content), unsafe_allow_html=True)
+            else:
+                st.write(bot_template.replace("{{MSG}}", message.content), unsafe_allow_html=True)
+    else:
+        st.write(alert_bot_template.replace("{{MSG}}", "Click the 'Process' button before starting the session."), unsafe_allow_html=True)
             
 # function to retrieve document text using document id
 def get_doc_text(doc_id):

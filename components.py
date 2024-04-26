@@ -1,7 +1,10 @@
 css = '''
 <style>
 .chat-message {
-    padding: 1.5rem; border-radius: 0.5rem; margin-bottom: 1rem; display: flex
+    padding: 1.5rem; 
+    border-radius: 0.5rem; 
+    margin-bottom: 1rem; 
+    display: flex
 }
 .chat-message.user {
     background-color: #2b313e
@@ -9,8 +12,11 @@ css = '''
 .chat-message.bot {
     background-color: #475063
 }
+.chat-message.alert-bot {
+    background-color: #d63024
+}
 .chat-message .avatar {
-  width: 20%;
+  width: 15%;
 }
 .chat-message .avatar img {
   max-width: 78px;
@@ -19,17 +25,25 @@ css = '''
   object-fit: cover;
 }
 .chat-message .message {
-  width: 80%;
-  padding: 0 1.5rem;
+  width: 85%;
   color: #fff;
 }
 '''
 
 header_template = """
-<div style="background-color:tomato;padding:10px">
+<div style="background-color:#2986cc;padding:10px">
 <h2 style="color:white;text-align:center;">{{MSG}}</h2>
 </div><br><br>
 """
+
+alert_bot_template = '''
+<div class="chat-message alert-bot">
+    <div class="avatar">
+        <img src="https://www.pngmart.com/files/22/Bot-Angry-Icon-PNG-Photos.png" style="max-height: 78px; max-width: 78px; border-radius: 50%; object-fit: cover;">
+    </div>
+    <div class="message">{{MSG}}</div>
+</div>
+'''
 
 bot_template = '''
 <div class="chat-message bot">

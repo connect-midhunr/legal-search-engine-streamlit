@@ -48,13 +48,16 @@ def get_doc_text(doc_id):
     return doc_text
 
 if __name__ == '__main__':
+    st.set_page_config(page_title="Legal Docs QnA", page_icon=":robot:")
+    st.write(css, unsafe_allow_html=True)
+
     col1, col2, col3 = st.columns(3)
     
     with col2:
         st.image(f'{current_directory}/images/collabll-logo.png')
         st.header("Legal Docs QnA")
 
-    st.set_page_config(page_title="Legal Docs QnA")
+    st.set_page_config(page_title="Legal Docs QnA", page_icon=":robot:")
     st.write(css, unsafe_allow_html=True)
 
     if "conversation" not in st.session_state:

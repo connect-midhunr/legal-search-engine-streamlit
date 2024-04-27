@@ -74,7 +74,7 @@ if __name__ == '__main__':
 
     if selected_tab == "Search":
         st.markdown(header_template.replace("{{MSG}}", "Legal Docs Search"), unsafe_allow_html=True)
-        st.write("This tab demonstrates the 'Search and Find Documents' part of the application")
+        st.write("This tab demonstrates the 'Search and Find Documents' part of the application.")
 
         search_document = st.text_input("Search and find relevant documents:")
         if search_document:
@@ -93,7 +93,7 @@ if __name__ == '__main__':
 
     if selected_tab == "QnA":
         st.markdown(header_template.replace("{{MSG}}", "Legal Docs QnA"), unsafe_allow_html=True)
-        st.write("This tab demonstrates the 'Question and Answer' part of the application")
+        st.write("This tab demonstrates the 'Question and Answer' part of the application.")
 
         doc_id = dict_of_options[st.selectbox("Select a case", list(dict_of_options.keys()))]
         if st.button("Process"):

@@ -78,17 +78,18 @@ if __name__ == '__main__':
 
         search_document = st.text_input("Search and find relevant documents:")
         if search_document:
-            result = doc_collection.query(query_texts=search_document, n_results=10)
-            # st.write(result['metadatas'][0])
+            with st.spinner("Loading..."):
+                result = doc_collection.query(query_texts=search_document, n_results=10)
+                # st.write(result['metadatas'][0])
 
-            for i, metadata in enumerate(result['metadatas'][0]):
-                result_template = search_result_template.replace("{{CASE_TITLE}}", metadata['case_title'])
-                result_template = result_template.replace("{{CASE_TYPE}}", metadata['case_type'])
-                result_template = result_template.replace("{{CNR_NUMBER}}", metadata['cnr_num'])
-                result_template = result_template.replace("{{INTERIM_ORDERS_URL}}", generate_interim_orders_info(eval(metadata['list_of_interim_order_urls'])))
-                result_template = result_template.replace("{{JUDGEMENT_URL}}", generate_judgement_info(metadata['judgement_url']))
-                # print(result_template)
-                st.write(result_template, unsafe_allow_html=True)
+                for i, metadata in enumerate(result['metadatas'][0]):
+                    result_template = search_result_template.replace("{{CASE_TITLE}}", metadata['case_title'])
+                    result_template = result_template.replace("{{CASE_TYPE}}", metadata['case_type'])
+                    result_template = result_template.replace("{{CNR_NUMBER}}", metadata['cnr_num'])
+                    result_template = result_template.replace("{{INTERIM_ORDERS_URL}}", generate_interim_orders_info(eval(metadata['list_of_interim_order_urls'])))
+                    result_template = result_template.replace("{{JUDGEMENT_URL}}", generate_judgement_info(metadata['judgement_url']))
+                    # print(result_template)
+                    st.write(result_template, unsafe_allow_html=True)
 
     if selected_tab == "QnA":
         st.markdown(header_template.replace("{{MSG}}", "Legal Docs QnA"), unsafe_allow_html=True)
@@ -96,7 +97,7 @@ if __name__ == '__main__':
 
         doc_id = dict_of_options[st.selectbox("Select a case", list(dict_of_options.keys()))]
         if st.button("Process"):
-            with st.spinner("Processing"):
+            with st.spinner("Processing..."):
                 doc_text = get_doc_text(doc_id)
                 text_chunks = create_text_chunks(doc_text)
                 vector_store = create_vector_store(text_chunks)

@@ -8,6 +8,24 @@ css = '''
             color: #000000;
             background-color: #9fc5e8
         }
+        a.button {
+            display: inline-block;
+            outline: none;
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 20px;
+            font-weight: 600;
+            border-radius: 8px;
+            padding: 13px 23px;
+            border: 1px solid #222222;
+            transition: box-shadow 0.2s ease 0s, -ms-transform 0.1s ease 0s, -webkit-transform 0.1s ease 0s, transform 0.1s ease 0s;
+            background: #fff;
+            color: #222222;
+            :hover {
+                border-color: #000000;
+                background: #f7f7f7;
+            }
+        }
         .chat-message {
             padding: 1.5rem; 
             border-radius: 0.5rem; 
@@ -24,18 +42,18 @@ css = '''
             background-color: #d63024
         }
         .chat-message .avatar {
-        width: 15%;
+            width: 15%;
         }
         .chat-message .avatar img {
-        max-width: 78px;
-        max-height: 78px;
-        border-radius: 50%;
-        object-fit: cover;
+            max-width: 78px;
+            max-height: 78px;
+            border-radius: 50%;
+            object-fit: cover;
         }
         .chat-message .message {
-        width: 85%;
-        padding: 0 1.5rem;
-        color: #fff;
+            width: 85%;
+            padding: 0 1.5rem;
+            color: #fff;
         }
 '''
 
@@ -56,8 +74,8 @@ def generate_interim_orders_info(list_of_interim_order_urls=''):
     else:
         html = 'No interim orders available for this case.'
 
-    print("Interim orders:")
-    print(html)
+    # print("Interim orders:")
+    # print(html)
     return html
 
 # function to generate judgement URLs part of the search result
@@ -67,9 +85,8 @@ def generate_judgement_info(judgement_url=''):
     else:
         html = 'No judgements available for this case.'
 
-    print("Judgement:")
-    print(html)
-    print()
+    # print("Judgement:")
+    # print(html)
     return html
 
 search_result_template = """
@@ -87,6 +104,10 @@ search_result_template = """
             </div>
             <div class="info-item">
                 {{JUDGEMENT_URL}}
+            </div>
+            <br>
+            <div class="info-item">
+                <a href="/?docid={{START_QNA_URL}}" class="button" target="_self">Start QnA with the Documents</a>
             </div>
         </div>
     </div>

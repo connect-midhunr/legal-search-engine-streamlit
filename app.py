@@ -85,11 +85,12 @@ if __name__ == '__main__':
         st.write(f'The case you have selected:  \n**{doc_title}**')
 
         # doc_id = dict_of_options[st.selectbox("Select a case", list(dict_of_options.keys()))]
-        # if st.button("Process"):
-        with st.spinner("Processing..."):
-            text_chunks = create_text_chunks(doc_text)
-            vector_store = create_vector_store(text_chunks)
-            st.session_state.conversation = create_chat_conversation(vector_store)
+        # if st.button("Process")
+        if not st.session_state.conversation:
+            with st.spinner("Processing..."):
+                text_chunks = create_text_chunks(doc_text)
+                vector_store = create_vector_store(text_chunks)
+                st.session_state.conversation = create_chat_conversation(vector_store)
 
         user_question = st.text_input("Ask a question about your documents:")
         if user_question:

@@ -159,7 +159,9 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
-.documents
 documents/
-.chroma_db
+interim_order_documents/
+judgement_documents/
 chroma_db/
+csv_handler.py
+document_formatter.py

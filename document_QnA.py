@@ -5,16 +5,23 @@ from dotenv import load_dotenv
 
 from langchain.text_splitter import CharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
-from langchain.embeddings.huggingface import HuggingFaceInstructEmbeddings
+from langchain.embeddings.huggingface import HuggingFaceBgeEmbeddings
 from langchain.vectorstores.faiss import FAISS
 from langchain.memory import ConversationBufferMemory
 from langchain.chains.conversational_retrieval.base import ConversationalRetrievalChain
+from langchain_community.llms.huggingface_hub import HuggingFaceHub
+from langchain_community.llms.replicate import Replicate
+from langchain_community.llms.ollama import Ollama
 
 load_dotenv()
-embedding_model = os.getenv('EMBEDDING_MODEL')
+# chromadb_embedding_model = os.getenv('CHROMADB_EMBEDDING_MODEL')
 db_name = os.getenv('DATABASE_NAME')
-openai_api_key = os.getenv('OPENAI_API_KEY')
+# openai_api_key = os.getenv('OPENAI_API_KEY')
 huggingfacehub_api_key = os.getenv('HUGGINGFACEHUB_API_TOKEN')
+huggingfacehub_embedding_model = os.getenv('FAISS_EMBEDDING_MODEL')
+replicate_api_key = os.getenv('REPLICATE_API_TOKEN')
+
+# print(f"OpenAI key: {openai_api_key}")
 
 # function to identify all line endings in a string.
 def get_line_endings(text):
@@ -46,23 +53,26 @@ def create_text_chunks(text):
 
 # function to create vector store
 def create_vector_store(text_chunks):
-    embedding = OpenAIEmbeddings()
-    # embedding = HuggingFaceInstructEmbeddings(model_name="hkunlp/instructor-xl")
+    # embedding = OpenAIEmbeddings()
+    embedding = HuggingFaceBgeEmbeddings(model_name=huggingfacehub_embedding_model, model_kwargs={"device": "cpu"}, encode_kwargs={"normalize_embeddings": True})
     vector_store = FAISS.from_texts(texts=text_chunks, embedding=embedding)
     return vector_store
 
 # function to create conversation of the chatbot
 def create_chat_conversation(vector_store):
-   memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
-   conversation_chain = ConversationalRetrievalChain.from_llm(
-        llm=ChatOpenAI(model_name='gpt-3.5-turbo'),
-        retriever=vector_store.as_retriever(search_type = "mmr"),
-        memory=memory)
-   return conversation_chain
+    memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
+    #  llm = Replicate(model="meta/meta-llama-3-70b-instruct", model_kwargs={"temperature": 0.6})
+    
+    llm = Ollama(model="phi3", temperature=0.6)
+    conversation_chain = ConversationalRetrievalChain.from_llm(
+          llm=llm,
+          retriever=vector_store.as_retriever(search_type = "mmr"),
+          memory=memory)
+    return conversation_chain
 
 if __name__ == '__main__':
     client = chromadb.PersistentClient(path='data')
-    # sentence_transformer_ef = embedding_functions.SentenceTransformerEmbeddingFunction(model_name=embedding_model)
+    # sentence_transformer_ef = embedding_functions.SentenceTransformerEmbeddingFunction(model_name=chromadb_embedding_model)
     doc_collection = client.get_collection(name=db_name)
 
     result = doc_collection.get(ids=['id_71'])

@@ -11,11 +11,11 @@ from chromadb.utils import embedding_functions
 import os
 from dotenv import load_dotenv
 
-load_dotenv()
-embedding_model = os.getenv('EMBEDDING_MODEL')
+load_dotenv(verbose=True)
+# chromadb_embedding_model = os.getenv('CHROMADB_EMBEDDING_MODEL')
 db_name = os.getenv('DATABASE_NAME')
-openai_api_key = os.getenv('OPENAI_API_KEY')
-huggingfacehub_api_key = os.getenv('HUGGINGFACEHUB_API_TOKEN')
+# openai_api_key = os.getenv('OPENAI_API_KEY')
+# huggingfacehub_api_key = os.getenv('HUGGINGFACEHUB_API_TOKEN')
 
 # Get the absolute path of the current working directory
 current_directory = os.getcwd()
@@ -64,7 +64,7 @@ if __name__ == '__main__':
         st.image(f'{current_directory}/images/collabll-logo.png')
 
     doc_id = st.query_params.get('docid')
-    print('doc-id:', doc_id)
+    # print('doc-id:', doc_id)
 
     # selected_tab = option_menu(
     #     menu_title=None,

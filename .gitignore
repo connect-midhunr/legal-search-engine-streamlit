@@ -163,5 +163,6 @@ documents/
 interim_order_documents/
 judgement_documents/
 chroma_db/
+search_results/
 csv_handler.py
 document_formatter.py

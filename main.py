@@ -474,11 +474,11 @@ if __name__ == '__main__':
 
         list_of_case_details = []
 
-        for case_type in range(1, 2):
+        for case_type in case_types:
 
             print(f"Process for case type {case_type} started...")
 
-            for year in range(2011, 2012):
+            for year in range(2011, 2025):
 
                 print(f"Process for year {year} started...")
             
@@ -509,6 +509,6 @@ if __name__ == '__main__':
             print(f"Process for case type {case_type} completed...")
             print()
 
-        # create_csv_dataset(list_of_case_details)
+        create_csv_dataset(list_of_case_details)
 
         

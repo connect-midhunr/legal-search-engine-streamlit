@@ -3,19 +3,19 @@ import sys
 sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 
 import streamlit as st
-from streamlit_option_menu import option_menu
 from components import css, header_template, search_result_template, user_template, bot_template, alert_bot_template, generate_interim_orders_info, generate_judgement_info
 from document_QnA import create_text_chunks, create_vector_store, create_chat_conversation
 import chromadb
-from chromadb.utils import embedding_functions
 import os
-from dotenv import load_dotenv
+import json
 
-load_dotenv(verbose=True)
-# chromadb_embedding_model = os.getenv('CHROMADB_EMBEDDING_MODEL')
-db_name = os.getenv('DATABASE_NAME')
-# openai_api_key = os.getenv('OPENAI_API_KEY')
-# huggingfacehub_api_key = os.getenv('HUGGINGFACEHUB_API_TOKEN')
+def load_config(filename):
+    with open(filename, 'r') as f:
+        config = json.load(f)
+    return config
+
+config = load_config('config.json')
+db_name = config['database']['chromadb']['database_name']
 
 # Get the absolute path of the current working directory
 current_directory = os.getcwd()

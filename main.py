@@ -5,6 +5,8 @@ import os
 import csv
 import re
 import PyPDF2
+import time
+import sys
 
 # function to write a string to a TXT file
 def write_string_to_txt_file(string_content):
@@ -51,6 +53,7 @@ def get_case_results_casetype_year(casetype, year):
     try:
         # make a POST request to the API with the provided data
         api_url = 'https://hckinfo.kerala.gov.in/digicourt/Casedetailssearch/Stausbycasetype'
+        # print(case_type, year)
         response = requests.post(api_url, data={'case_type': casetype, 'case_year': year})
         response.raise_for_status()  # Check for any HTTP errors
         
@@ -72,11 +75,24 @@ def extract_cinum_cnrnum_casenum_casetitle_row(row):
     case_title = td_elements[2].get_text(strip=True)
     result_button = td_elements[3].button
     # print(result_button)
-    parameters = result_button.get('onclick').replace("'", "").replace(");", "")[result_button.get('onclick').find("(")+1:result_button.get('onclick').find(")")].split(',')
+    parameters = result_button.get('onclick').replace("'", "").replace(");", "")[result_button.get('onclick').find("(")+1:].split(',')
     ci_num, cnr_num = parameters[0], parameters[1]
     
     return {"CI Number": ci_num, "CNR Number": cnr_num, "Case Number": case_num, "Case Title": case_title}
-    
+
+# function to extract CI numbers, CNR numbers, case numbers and case titles from a search result
+def extract_num_of_cases(result_soup):
+    try:
+        # find the table with class="table table-striped table-bordered table-hover"
+        table = result_soup.find('table', class_='table table-striped table-bordered table-hover')
+        # find all rows (tr) within the table's tbody and get the number of cases
+        num_of_cases = table.find('thead').find_all('tr')[0].find('th').get_text().split()[-1]
+
+        return int(num_of_cases)
+    except Exception as e:
+        print("Error fetching content(extract_num_of_cases):", e)
+        return None
+
 # function to extract CI numbers, CNR numbers, case numbers and case titles from a search result
 def extract_cinum_cnrnum_casenum_casetitle_list(result_soup):
     try:
@@ -111,13 +127,13 @@ def get_case_details_from_parameters(parameters):
         return None
     
 # function to extract token, lookup and root user of interim orders
-def extract_token_lookup_rootuser_interim_orders(case_details_soup):
+def extract_token_lookup_rootuser_of_interim_orders(case_details_soup):
     try:
         # find all buttons with class 'btn btn-primary'
         interim_order_buttons = [button.a for button in case_details_soup.find_all('button', class_='btn btn-primary') if button.get_text(strip=True) != 'VIEW JUDGMENT']
         if len(interim_order_buttons) > 0:
             # extract the values of the onclick attribute
-            token_lookup_rootuser_list = [button.get('onclick').replace("'", "").replace(");", "")[button.get('onclick').find("(")+1:button.get('onclick').find(")")].split(',') for button in interim_order_buttons]
+            token_lookup_rootuser_list = [button.get('onclick').replace("'", "").replace(");", "")[button.get('onclick').find("(")+1:].split(',') for button in interim_order_buttons]
             return token_lookup_rootuser_list
         return None
     except Exception as e:
@@ -135,7 +151,7 @@ def generate_interim_order_urls_list(list_of_interim_order_parameters):
         return None
 
 # function to extract token, lookup and citation number of judgement
-def extract_token_lookup_citationnum_judgement(case_details_soup):
+def extract_token_lookup_citationnum_of_judgement(case_details_soup):
     try:
         # find all buttons with class 'btn btn-primary'
         judgement_button = [button.a for button in case_details_soup.find_all('button', class_='btn btn-primary') if button.get_text(strip=True) == 'VIEW JUDGMENT']
@@ -143,7 +159,7 @@ def extract_token_lookup_citationnum_judgement(case_details_soup):
         if len(judgement_button) == 1:
             # extract the values of the onclick attribute
             onclick = judgement_button[0].get('onclick')
-            token_lookup_citationnum = onclick.replace("'", "").replace(");", "")[onclick.find("(")+1:onclick.find(")")].split(',')
+            token_lookup_citationnum = onclick.replace("'", "").replace(");", "")[onclick.find("(")+1:].split(',')
             return token_lookup_citationnum
         else:
             return None
@@ -193,18 +209,18 @@ def get_pdf_file_content(pdf_url):
         return None
 
 # write pdf file
-def write_pdf_file(folderpath, url):
+def write_pdf_file(folderpath, url, filename_prefix, message):
     try:
         if len(url) > 0:
             pdf_url = get_pdf_file_url(url)
             pdf_content = get_pdf_file_content(pdf_url)
-            filename = pdf_url.split('/')[-1]
+            filename = filename_prefix + '_' + pdf_url.split('/')[-1]
             file_path = os.path.join(folderpath, filename)
             
             # write the content of the response to a PDF file
             with open(file_path, 'wb') as f:
                 f.write(pdf_content)
-                print(file_path, "is written.")
+                print(f"{message}: {file_path}")
 
             # print("Type of path:", type(file_path))
             return file_path
@@ -213,13 +229,13 @@ def write_pdf_file(folderpath, url):
         return None
     
 # function to download and save files
-def save_pdf_files(case_num, interim_order_url_list, judgement_url):
+def save_pdf_files(year, case_num, interim_order_url_list, judgement_url):
     try:
         root_directory = 'new_documents'
-        case_folder_name = str(case_num)
+        case_folder_name = str(year) + '_' + str(case_num)
         interim_orders_folder_name = 'interim orders'
 
-        interim_orders_folderpath = root_directory + '/' + case_folder_name + '/' + interim_orders_folder_name
+        interim_orders_folderpath = root_directory + '/' + case_folder_name
         judgement_folderpath = root_directory + '/' + case_folder_name
 
         # create folders if does not exist
@@ -227,11 +243,15 @@ def save_pdf_files(case_num, interim_order_url_list, judgement_url):
             os.makedirs(interim_orders_folderpath)
 
         interim_order_filename_list = []
-        for url in interim_order_url_list:
-            interim_order_filename_list.append(write_pdf_file(interim_orders_folderpath, url))
+        for index, url in enumerate(interim_order_url_list):
+            filename_prefix = f"Interim_order_{index+1}"
+            message = f"Printing Interim Order # {index+1}/{len(interim_order_url_list)}..."
+            interim_order_filename_list.append(write_pdf_file(interim_orders_folderpath, url, filename_prefix, message))
             # print('interim_order_filename_list', interim_order_filename_list)
 
-        judgement_filename = write_pdf_file(judgement_folderpath, judgement_url)
+        filename_prefix = "Judgement"
+        message = "Printing Judgement"
+        judgement_filename = write_pdf_file(judgement_folderpath, judgement_url, filename_prefix, message)
         print("PDF files saved successfully...")
 
         return interim_order_filename_list, judgement_filename
@@ -270,7 +290,7 @@ def extract_judgement_text_from_judgement_file(judgement_filename):
                     else:
                         extracted_text = "Text not found"  
 
-                    write_string_to_txt_file(extracted_text)
+                    # write_string_to_txt_file(extracted_text)
                     return extracted_text
         
         return ''
@@ -446,8 +466,12 @@ def create_csv_dataset(list_of_case_details):
         # Extracting header from the first dictionary
         headers = list_of_case_details[0].keys()
 
+        # create folders if does not exist
+        if not os.path.exists('new_documents'):
+            os.makedirs('new_documents')
+
         # Writing data to CSV file
-        with open('output.csv', 'w', newline='') as csvfile:
+        with open('new_documents/output.csv', 'w', newline='') as csvfile:
             writer = csv.DictWriter(csvfile, fieldnames=headers)
             
             # Writing headers to CSV file
@@ -464,51 +488,84 @@ def create_csv_dataset(list_of_case_details):
 
 if __name__ == '__main__':
 
+    mode = 'run' if len(sys.argv) < 3 else sys.argv[2]
+    case_type_num = int(sys.argv[1])
+
+    start_time = time.time()
+
     if check_website_exists(url):
         soup = create_soup_object(url)
+        # print(soup)
         select_tag = soup.find('select', id='case_type')
+        # print(select_tag)
         options = select_tag.find_all('option')
+        # print(options)
         case_types = []
         for option in options[1:]:
             case_types.append((option['value'], option.get_text(strip=True)))
 
         list_of_case_details = []
+        total_num_of_cases = 0
+        total_num_of_files = 0
 
-        for case_type in case_types:
+        try:
+            for case_type in case_types[case_type_num-1:case_type_num]:
 
-            print(f"Process for case type {case_type} started...")
+                print(f"Process for case type {case_type} started...\n")
 
-            for year in range(2011, 2025):
+                for year in range(2011, 2025):
 
-                print(f"Process for year {year} started...")
-            
-                search_result_soup = get_case_results_casetype_year(case_type, year)
-                list_of_cinum_casenum = extract_cinum_cnrnum_casenum_casetitle_list(search_result_soup)
-                # print('list_of_cinum_casenum:', list_of_cinum_casenum)
-                print()
-                for parameters in list_of_cinum_casenum:
-                    # print("parameters:", parameters)
-                    case_details_soup = get_case_details_from_parameters(parameters)
-                    # write_string_to_txt_file(case_details_soup.prettify())
+                    print(f"Process for year {year} started...")
                 
-                    list_of_interim_order_parameters = extract_token_lookup_rootuser_interim_orders(case_details_soup)
-                    judgement_parameters = extract_token_lookup_citationnum_judgement(case_details_soup)
-                    list_of_interim_order_urls = generate_interim_order_urls_list(list_of_interim_order_parameters) if list_of_interim_order_parameters is not None else []
-                    judgement_url = generate_judgement_url(judgement_parameters) if judgement_parameters is not None else ''
+                    search_result_soup = get_case_results_casetype_year(case_type[0], year)
+                    print("No. of cases in the year", year, ":", extract_num_of_cases(search_result_soup))
+                    total_num_of_cases += extract_num_of_cases(search_result_soup)
+                    if mode == 'run':
+                        list_of_cinum_casenum = extract_cinum_cnrnum_casenum_casetitle_list(search_result_soup)
+                        # print(list_of_cinum_casenum)
+                        # print('list_of_cinum_casenum:', list_of_cinum_casenum)
+                        # print()
+                        for case_index, parameters in list(enumerate(list_of_cinum_casenum)):
+                            print(f"Case # {case_index+1}/{len(list_of_cinum_casenum)} of case type {case_type} year {year}...")
+                            # print("parameters:", parameters)
+                            case_details_soup = get_case_details_from_parameters(parameters)
+                            # write_string_to_txt_file(case_details_soup.prettify())
+                        
+                            list_of_interim_order_parameters = extract_token_lookup_rootuser_of_interim_orders(case_details_soup)
+                            judgement_parameters = extract_token_lookup_citationnum_of_judgement(case_details_soup)
+                            list_of_interim_order_urls = generate_interim_order_urls_list(list_of_interim_order_parameters) if list_of_interim_order_parameters is not None else []
+                            judgement_url = generate_judgement_url(judgement_parameters) if judgement_parameters is not None else ''
+                            # print("No. of Interim Orders:", len(list_of_interim_order_urls))
+                            # print("Judgement:", judgement_url)
+                            total_num_of_files += len(list_of_interim_order_parameters) if list_of_interim_order_parameters else 0
+                            total_num_of_files += 1 if judgement_parameters else 0
 
-                    interim_order_filename_list, judgement_filename = save_pdf_files(parameters['CNR Number'], list_of_interim_order_urls, judgement_url)
-                    # judgement_text = extract_judgement_text_from_judgement_file(judgement_filename)
+                            # interim_order_filename_list, judgement_filename = save_pdf_files(year, parameters['CNR Number'], list_of_interim_order_urls, judgement_url)
+                            # judgement_text = extract_judgement_text_from_judgement_file(judgement_filename)
 
-                    list_of_case_details.append(extract_case_details(parameters, case_details_soup, list_of_interim_order_urls, judgement_url))
+                            list_of_case_details.append(extract_case_details(parameters, case_details_soup, list_of_interim_order_urls, judgement_url))
 
+                            print()
+
+                    print(f"Process for year {year} completed...")
                     print()
 
-                print(f"Process for year {year} completed...")
+                print(f"Process for case type {case_type} completed...")
                 print()
 
-            print(f"Process for case type {case_type} completed...")
-            print()
+        except Exception as e:
+            print(e)
 
-        create_csv_dataset(list_of_case_details)
+        finally:
+            print(f"Total no. of cases: {total_num_of_cases}")
+            if mode == 'run':
+                print(f"Total no. of files: {total_num_of_files}")
+                print()
+                create_csv_dataset(list_of_case_details)
+            
+    end_time = time.time()
+    time_taken = end_time - start_time
+    print(f"Total time taken to complete the process: {round(time_taken // 60)} mins {round(time_taken % 60)} secs")
+    print()
 
         

@@ -160,9 +160,11 @@ cython_debug/
 #.idea/
 
 documents/
+new_documents/
 interim_order_documents/
 judgement_documents/
 chroma_db/
 search_results/
 csv_handler.py
 document_formatter.py
+temp.txt

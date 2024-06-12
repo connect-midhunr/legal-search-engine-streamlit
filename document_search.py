@@ -396,20 +396,19 @@ if __name__ == '__main__':
     # print(create_document_text_content(list_of_court_cases[70]))
     
     for i, case_details in enumerate(list_of_court_cases):
-        print(create_document_text_content(case_details))
-        # case_type = case_details['Case Type']
-        # cnr_num = case_details['CNR Number']
-        # case_title = case_details['Case Title']
-        # list_of_interim_order_urls = eval(case_details['List of Interim Order URLs'])
-        # judgement_url = case_details['Judgement URL']
+        case_type = case_details['Case Type']
+        cnr_num = case_details['CNR Number']
+        case_title = case_details['Case Title']
+        list_of_interim_order_urls = eval(case_details['List of Interim Order URLs'])
+        judgement_url = case_details['Judgement URL']
 
-        # print("Case no. ", i+1, ":", cnr_num)
+        print("Case no. ", i+1, ":", cnr_num)
 
-        # doc_collection.add(
-        #     documents=[create_document_text_content(case_details)],
-        #     metadatas=[{"case_type": str(case_type), "cnr_num": str(cnr_num), "case_title": str(case_title), "list_of_interim_order_urls": f"{list_of_interim_order_urls}", "judgement_url": str(judgement_url)}],
-        #     ids=[f"id_{i+1}"]
-        # )
+        doc_collection.add(
+            documents=[create_document_text_content(case_details)],
+            metadatas=[{"case_type": str(case_type), "cnr_num": str(cnr_num), "case_title": str(case_title), "list_of_interim_order_urls": f"{list_of_interim_order_urls}", "judgement_url": str(judgement_url)}],
+            ids=[f"id_{i+1}"]
+        )
         # print(type(extract_and_join_text_from_pdfs(cnr_num, list_of_interim_order_urls, judgement_url)))
         print()
 
@@ -425,9 +424,9 @@ if __name__ == '__main__':
     # print("Length of Result:", len(result['documents'][0]))
     # print()
 
-    # # # print("Peek:", doc_collection.peek())
-    # print("Count:", doc_collection.count())
-    # print()
+    print("Peek:", doc_collection.peek())
+    print("Count:", doc_collection.count())
+    print()
 
     # for element in result['metadatas'][0]:
     #     print(f"Metadata: {element['case_type']} {element['cnr_num']} {element['case_title']} {eval(element['list_of_interim_order_urls'])} {element['judgement_url']}")

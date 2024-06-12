@@ -11,6 +11,14 @@ import json
 import time
 import numpy as np
 import pandas as pd
+from googletrans import Translator
+from py3langid.langid import LanguageIdentifier, MODEL_FILE
+
+from enums import Languages
+
+translator = Translator()
+identifier = LanguageIdentifier.from_pickled_model(MODEL_FILE)
+identifier.set_languages([language.value for language in Languages])
 
 def load_config(filename):
     with open(filename, 'r') as f:
@@ -31,6 +39,9 @@ all_documents = doc_collection.get()
 list_of_case_titles = [dictionary['case_title'] for dictionary in all_documents['metadatas']]
 list_of_doc_ids = all_documents['ids']
 dict_of_options = {list_of_case_titles[num]:list_of_doc_ids[num] for num in range(len(list_of_case_titles))}
+            
+list_of_languages = ['Detect Language']
+list_of_languages.extend([language.title() for language in Languages.__members__.keys()])
 
 # function to stream response message from the bot
 def stream_data(message):
@@ -42,24 +53,40 @@ def stream_data(message):
     except Exception as e:
         print(f"Exception occured in stream_data: {e}")
         return None
+    
+# function to detect language of the text
+def detect_language(message):
+    try:
+        print("Detected language:", identifier.classify(message))
+        return identifier.classify(message)[0]
+
+    except Exception as e:
+        print(f"Exception occured in detect_language: {e}")
+        return None
 
 # function to generate user-to-bot chat
-def generate_chat_from_user_question(user_question):
+def generate_chat_from_user_question(user_question, language = "Detect Language"):
     try:
+        lang_code = Languages[language.upper()].value if language.upper() in list(Languages.__members__.keys()) else detect_language(user_question)
+        
         if st.session_state.conversation:
-            response = st.session_state.conversation({'question': user_question + "Provide the answer in at least 100 words."})
-            st.session_state.chat_history = response['chat_history']
+            st.session_state.chat_history.append(user_question)
+            question = translator.translate(user_question, dest='en').text
+            response = st.session_state.conversation({'question': question + "Provide the answer in at least 60 words."})
+            answer = translator.translate(response['answer'], dest=lang_code).text
+            st.session_state.chat_history.append(answer)
+            print(st.session_state.chat_history)
 
             for i, message in enumerate(st.session_state.chat_history):
                 if i % 2 == 0:
                     with st.chat_message("user"):
-                        st.write(message.content.replace("Provide the answer in at least 100 words.", ""))
+                        st.write(message)
                 else:
                     with st.chat_message("assistant"):
                         if i == len(st.session_state.chat_history) - 1:
-                            st.write_stream(stream_data(message.content))
+                            st.write_stream(stream_data(message))
                         else:
-                            st.write(message.content)
+                            st.write(message)
 
         else:
             st.write(alert_bot_template.replace("{{MSG}}", "Click the 'Process' button before starting the session."), unsafe_allow_html=True)
@@ -88,7 +115,7 @@ if __name__ == '__main__':
         if "conversation" not in st.session_state:
             st.session_state.conversation = None
         if "chat_history" not in st.session_state:
-            st.session_state.chat_history = None
+            st.session_state.chat_history = []
 
         col1, col2, col3 = st.columns(3)
         with col2:
@@ -123,10 +150,14 @@ if __name__ == '__main__':
                     vector_store = create_vector_store(text_chunks)
                     st.session_state.conversation = create_chat_conversation(vector_store)
 
-            user_question = st.chat_input("Ask a question about your document")
+            input, drop_down = st.columns([3, 1])
+            with input:
+                user_question = st.chat_input("Ask a question about your document")
+            with drop_down:
+                selected_language = st.selectbox("Select the language", list_of_languages, label_visibility="collapsed")
             if user_question:
                 with st.spinner("Generating response..."):
-                    generate_chat_from_user_question(user_question)
+                    generate_chat_from_user_question(user_question, selected_language)
 
         else:
             st.write(header_template.replace("{{MSG}}", "Legal Docs Search"), unsafe_allow_html=True)

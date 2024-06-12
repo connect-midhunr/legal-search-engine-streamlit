@@ -83,10 +83,6 @@ def create_text_chunks(text):
 # function to create vector store
 def create_vector_store(text_chunks):
   try:
-    # import pprint
-    # for model in genai.list_models():
-    #     pprint.pprint(model)
-
     # embedding = OpenAIEmbeddings()
     embedding = HuggingFaceBgeEmbeddings(model_name=huggingfacehub_embedding_model, model_kwargs={"device": "cpu"}, encode_kwargs={"normalize_embeddings": True})
     vector_store = FAISS.from_texts(texts=text_chunks, embedding=embedding)

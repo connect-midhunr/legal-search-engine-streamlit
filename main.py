@@ -525,7 +525,7 @@ if __name__ == '__main__':
                         # print(list_of_cinum_casenum)
                         # print('list_of_cinum_casenum:', list_of_cinum_casenum)
                         # print()
-                        for case_index, parameters in list(enumerate(list_of_cinum_casenum)):
+                        for case_index, parameters in enumerate(list_of_cinum_casenum):
                             print(f"Case # {case_index+1}/{len(list_of_cinum_casenum)} of case type {case_type} year {year}...")
                             # print("parameters:", parameters)
                             case_details_soup = get_case_details_from_parameters(parameters)

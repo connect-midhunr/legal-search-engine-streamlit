@@ -168,3 +168,4 @@ search_results/
 csv_handler.py
 document_formatter.py
 temp.txt
+output.csv

@@ -1,5 +1,6 @@
 import csv
 import os
+import shutil
 from dotenv import load_dotenv
 import requests
 from bs4 import BeautifulSoup
@@ -32,6 +33,7 @@ config = load_config('config.json')
 db_name = config['database']['chromadb']['database_name']
 openai_model = config['llm_models']['openai_model']
 ollama_model = config['llm_models']['ollama_model']
+pdf_downloads_foldername = config['folders']['pdf_downloads']
 
 # function to convert a CSV file to a list of dictionaries
 def csv_to_list_of_dicts(csv_file):
@@ -102,10 +104,10 @@ def write_pdf_file(folderpath, url):
         return None
     
 # function to download and save files
-def save_pdf_files(cnr_num, interim_order_url_list, judgement_url):
+def save_pdf_files(case_type, cnr_num, interim_order_url_list, judgement_url):
     try:
-        root_directory = 'documents'
-        case_folder_name = str(cnr_num) + "_" + datetime.now().strftime("%d%m%Y%H%M%S%f")[:-3]
+        root_directory = os.path.join(os.getcwd(), pdf_downloads_foldername)
+        case_folder_name = str(case_type) + '_' + str(cnr_num)
         # print('case_folder_name:', case_folder_name)
         interim_orders_folder_name = 'interim orders'
 
@@ -125,8 +127,23 @@ def save_pdf_files(cnr_num, interim_order_url_list, judgement_url):
         print("PDF files saved successfully...")
 
         return interim_order_filename_list, judgement_filename
+    
     except Exception as e:
         print(f"Exception occured in save_pdf_files: {e}")
+        return None
+    
+# function to delete downloads folder
+def delete_downloads_folder():
+    try:
+        directory_path = os.path.join(os.getcwd(), pdf_downloads_foldername)
+        if os.path.exists(directory_path):
+            shutil.rmtree(directory_path)
+            print(f"Directory '{directory_path}' has been deleted.")
+        else:
+            print(f"Directory '{directory_path}' does not exist.")
+
+    except Exception as e:
+        print(f"Exception occured in delete_downloads_folder: {e}")
         return None
     
 # function to create document intro from case details
@@ -328,11 +345,12 @@ def create_document_text_content(case_details):
         case_intro = create_case_intro_from_case_details(case_details)
         pdf_text = case_intro
 
+        case_type = case_details['Case Type']
         cnr_num = case_details['CNR Number']
         list_of_interim_order_urls = eval(case_details['List of Interim Order URLs'])
         judgement_url = case_details['Judgement URL']
 
-        interim_order_filename_list, judgement_filename = save_pdf_files(cnr_num, list_of_interim_order_urls, judgement_url)
+        interim_order_filename_list, judgement_filename = save_pdf_files(case_type, cnr_num, list_of_interim_order_urls, judgement_url)
         # print("interim_order_filename_list:", interim_order_filename_list)
         # print("judgement_filename:", judgement_filename)
 
@@ -344,6 +362,8 @@ def create_document_text_content(case_details):
         if judgement_filename:
             text = extract_text_from_pdf_file(judgement_filename)
             pdf_text = pdf_text + f'Judgement is given below.\n\n' + format_document_text_content(text, DocumentType.JUDGEMENT) + '\n' + 25*'-' + '\n'
+
+        delete_downloads_folder()
 
         return pdf_text.strip()
 
@@ -365,32 +385,33 @@ def write_document_content_to_txt_file(i, element):
         return None
 
 if __name__ == '__main__':
-    # client = chromadb.PersistentClient(path="data")
-    # # sentence_transformer_ef = embedding_functions.SentenceTransformerEmbeddingFunction(model_name=embedding_model)
-    # doc_collection = client.get_or_create_collection(name=db_name)
+    client = chromadb.PersistentClient(path="data")
+    # sentence_transformer_ef = embedding_functions.SentenceTransformerEmbeddingFunction(model_name=embedding_model)
+    doc_collection = client.get_or_create_collection(name=db_name)
 
     list_of_court_cases = csv_to_list_of_dicts('output.csv')
     # demo_data = {'CI Number': 'KLHC010000012011', 'CNR Number': '200100000012011', 'Case Number': 'Adml.S. 1/2011', 'Case Title': 'UNICORN MARINE SERVICES PVT.LTD.v/sOWNERS AND PARTIES INTERESTED IN THE VES', 'Case Type': 'Adml.S.', 'Case Status': 'DISPOSED', 'Filing Date': '06-05-2011', 'Registration Date': '06-05-2011', 'Under Act(s)': 'act1', 'Under Section(s)': 'sec1', 'Petitioner': 'UNICORN MARINE SERVICES PVT.LTD.', 'Respondent': 'OWNERS AND PARTIES INTERESTED IN THE VES', 'Judge': 'HONOURABLE MR.JUSTICE HARUN-UL-RASHID', 'Bench': 'bench1', 'History of Case Hearings': "[{'#': '1', 'Cause List Type': 'Daily List', 'Hon: Judge Name': 'HONOURABLE MR.JUSTICE P.BHAVADASAN', 'BusinessDate': '25-11-2011', 'NextDate(Tentative Date)': '04-05-2012', 'Purpose of Hearing': 'PETITIONS', 'Order': 'o1'}, {'#': '2', 'Cause List Type': 'Part Two', 'Hon: Judge Name': 'HONOURABLE MR.JUSTICE N.K.BALAKRISHNAN', 'BusinessDate': '04-05-2012', 'NextDate(Tentative Date)': '21-06-2012', 'Purpose of Hearing': 'PETITIONS', 'Order': 'o2'}, {'#': '3', 'Cause List Type': 'Part Two', 'Hon: Judge Name': 'HONOURABLE MR.JUSTICE HARUN-UL-RASHID', 'BusinessDate': '21-06-2012', 'NextDate(Tentative Date)': '22-06-2012', 'Purpose of Hearing': 'PETITIONS', 'Order': 'o3'}, {'#': '4', 'Cause List Type': 'Daily List', 'Hon: Judge Name': '2963-HONOURABLE THE AG.CHIEF JUSTICE MR.M.M.PAREED PILLAY', 'BusinessDate': '22-06-2012', 'NextDate(Tentative Date)': '26-06-2012', 'Purpose of Hearing': 'FOR SETTLEMENT', 'Order': 'o4'}, {'#': '5', 'Cause List Type': 'Part Two', 'Hon: Judge Name': 'HONOURABLE MR.JUSTICE HARUN-UL-RASHID', 'BusinessDate': '26-06-2012', 'NextDate(Tentative Date)': '26-06-2012', 'Purpose of Hearing': 'FOR ORDERS', 'Order': 'o5'}, {'#': '6', 'Cause List Type': 'type1', 'Hon: Judge Name': 'HONOURABLE MR.JUSTICE HARUN-UL-RASHID', 'BusinessDate': '26-06-2012', 'NextDate(Tentative Date)': 'date1', 'Purpose of Hearing': 'pup1', 'Order': 'o6'}]", 'Judgement Date': '26-06-2012', 'List of Interim Order URLs': "['https://hckinfo.kerala.gov.in/digicourt/Casedetailssearch/fileviewcitation?token=MjAwMTAwMDAwMDEyMDExXzEucGRm+&lookups=b3JkZXJzLzIwMTE=+&citationno=MjAxMjpLRVI6MjQ4OTU=', 'https://hckinfo.kerala.gov.in/digicourt/Casedetailssearch/fileviewcitation?token=MjAwMTAwMDAwMDEyMDExXzEucGRm+&lookups=b3JkZXJzLzIwMTE=+&citationno=MjAxMjpLRVI6MjQ4OTU=', 'https://hckinfo.kerala.gov.in/digicourt/Casedetailssearch/fileviewcitation?token=MjAwMTAwMDAwMDEyMDExXzEucGRm+&lookups=b3JkZXJzLzIwMTE=+&citationno=MjAxMjpLRVI6MjQ4OTU=']", 'Judgement URL': 'https://hckinfo.kerala.gov.in/digicourt/Casedetailssearch/fileviewcitation?token=MjAwMTAwMDAwMDEyMDExXzEucGRm+&lookups=b3JkZXJzLzIwMTE=+&citationno=MjAxMjpLRVI6MjQ4OTU='}
     # print(demo_data)
     # print()
-    print(create_document_text_content(list_of_court_cases[70]))
-    # create_document_text_content(list_of_court_cases[24])
-    # for i, case_details in enumerate(list_of_court_cases[-10:]):
-    #     case_type = case_details['Case Type']
-    #     cnr_num = case_details['CNR Number']
-    #     case_title = case_details['Case Title']
-    #     list_of_interim_order_urls = eval(case_details['List of Interim Order URLs'])
-    #     judgement_url = case_details['Judgement URL']
+    # print(create_document_text_content(list_of_court_cases[70]))
+    
+    for i, case_details in enumerate(list_of_court_cases):
+        print(create_document_text_content(case_details))
+        # case_type = case_details['Case Type']
+        # cnr_num = case_details['CNR Number']
+        # case_title = case_details['Case Title']
+        # list_of_interim_order_urls = eval(case_details['List of Interim Order URLs'])
+        # judgement_url = case_details['Judgement URL']
 
-    #     print("Case no. ", i+1, ":", cnr_num)
+        # print("Case no. ", i+1, ":", cnr_num)
 
-    #     doc_collection.add(
-    #         documents=[create_document_text_content(case_details)],
-    #         metadatas=[{"case_type": str(case_type), "cnr_num": str(cnr_num), "case_title": str(case_title), "list_of_interim_order_urls": f"{list_of_interim_order_urls}", "judgement_url": str(judgement_url)}],
-    #         ids=[f"id_{i+1}"]
-    #     )
-    #     # print(type(extract_and_join_text_from_pdfs(cnr_num, list_of_interim_order_urls, judgement_url)))
-    #     print()
+        # doc_collection.add(
+        #     documents=[create_document_text_content(case_details)],
+        #     metadatas=[{"case_type": str(case_type), "cnr_num": str(cnr_num), "case_title": str(case_title), "list_of_interim_order_urls": f"{list_of_interim_order_urls}", "judgement_url": str(judgement_url)}],
+        #     ids=[f"id_{i+1}"]
+        # )
+        # print(type(extract_and_join_text_from_pdfs(cnr_num, list_of_interim_order_urls, judgement_url)))
+        print()
 
     # keyword = "nourinmol"
     # print(f"Searching for '{keyword}'...")

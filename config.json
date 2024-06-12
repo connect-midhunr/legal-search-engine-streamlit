@@ -11,5 +11,8 @@
     "embedding_models": {
         "chromadb_embedding_model": "all-MiniLM-L6-v2",
         "faiss_embedding_model": "BAAI/bge-small-en-v1.5"
+    },
+    "folders": {
+        "pdf_downloads": "downloaded_documents"
     }
 }

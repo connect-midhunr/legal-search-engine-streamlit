@@ -130,7 +130,7 @@ def get_case_details_from_parameters(parameters):
 def extract_token_lookup_rootuser_of_interim_orders(case_details_soup):
     try:
         # find all buttons with class 'btn btn-primary'
-        interim_order_buttons = [button.a for button in case_details_soup.find_all('button', class_='btn btn-primary') if button.get_text(strip=True) != 'VIEW JUDGMENT']
+        interim_order_buttons = [button.a for button in case_details_soup.find_all('button', class_='btn btn-primary') if button.get_text(strip=True) != 'VIEW JUDGMENT' and button.get_text(strip=True) != 'വിധിന്യായം കാണുക']
         if len(interim_order_buttons) > 0:
             # extract the values of the onclick attribute
             token_lookup_rootuser_list = [button.get('onclick').replace("'", "").replace(");", "")[button.get('onclick').find("(")+1:].split(',') for button in interim_order_buttons]
@@ -222,7 +222,6 @@ def write_pdf_file(folderpath, url, filename_prefix, message):
                 f.write(pdf_content)
                 print(f"{message}: {file_path}")
 
-            # print("Type of path:", type(file_path))
             return file_path
     except Exception as e:
         print("Error fetching content(write_pdf_file):", e)
@@ -231,7 +230,7 @@ def write_pdf_file(folderpath, url, filename_prefix, message):
 # function to download and save files
 def save_pdf_files(year, case_num, interim_order_url_list, judgement_url):
     try:
-        root_directory = 'new_documents'
+        root_directory = 'new_coduments'
         case_folder_name = str(year) + '_' + str(case_num)
         interim_orders_folder_name = 'interim orders'
 
@@ -449,9 +448,9 @@ def extract_case_details(parameters, case_details_soup, list_of_interim_order_ur
         judgement_table = [table for table in tables if table.find('td', class_='table-header').get_text(strip=True) == 'JUDGMENT']
         judgement_date = extract_details_from_judgement_table(judgement_table[0]) if len(judgement_table) > 0 else {'Judgement Date': ''}
 
-        document_urls = {'List of Interim Order URLs': list_of_interim_order_urls, 'Judgement URL': judgement_url}
+        codument_urls = {'List of Interim Order URLs': list_of_interim_order_urls, 'Judgement URL': judgement_url}
 
-        combined_details = combine_all_dicts([parameters, case_details, acts, petitioner, respondent, case_status, case_hearings, judgement_date, document_urls])
+        combined_details = combine_all_dicts([parameters, case_details, acts, petitioner, respondent, case_status, case_hearings, judgement_date, codument_urls])
         # print(combined_details)
 
         print("Case details extracted successfully...")
@@ -467,11 +466,11 @@ def create_csv_dataset(list_of_case_details):
         headers = list_of_case_details[0].keys()
 
         # create folders if does not exist
-        if not os.path.exists('new_documents'):
-            os.makedirs('new_documents')
+        if not os.path.exists('new_coduments'):
+            os.makedirs('new_coduments')
 
         # Writing data to CSV file
-        with open('new_documents/output.csv', 'w', newline='') as csvfile:
+        with open('new_coduments/output.csv', 'w', newline='') as csvfile:
             writer = csv.DictWriter(csvfile, fieldnames=headers)
             
             # Writing headers to CSV file
@@ -484,6 +483,29 @@ def create_csv_dataset(list_of_case_details):
         print("CSV file generated successfully...")
     except Exception as e:
         print("Error fetching content(create_csv_dataset):", e)
+        return None
+    
+# function to append a line of case details to csv dataset
+def append_to_csv_dataset(header, case_details):
+    try:
+        # create folders if does not exist
+        if not os.path.exists('new_coduments'):
+            os.makedirs('new_coduments')
+
+        # Writing data to CSV file
+        with open('new_coduments/output.csv', 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            
+            if os.stat('new_coduments/output.csv').st_size == 0:
+                # Writing headers to CSV file
+                writer.writerow(header)
+            
+            # Appending data to CSV file
+            writer.writerow(case_details)
+        
+        print("CSV file appended successfully...")
+    except Exception as e:
+        print("Error fetching content(append_to_csv_dataset):", e)
         return None
 
 if __name__ == '__main__':
@@ -512,20 +534,24 @@ if __name__ == '__main__':
             for case_type in case_types[case_type_num-1:case_type_num]:
 
                 print(f"Process for case type {case_type} started...\n")
-
+  
                 for year in range(2011, 2025):
 
                     print(f"Process for year {year} started...")
                 
                     search_result_soup = get_case_results_casetype_year(case_type[0], year)
                     print("No. of cases in the year", year, ":", extract_num_of_cases(search_result_soup))
+                    print()
                     total_num_of_cases += extract_num_of_cases(search_result_soup)
                     if mode == 'run':
                         list_of_cinum_casenum = extract_cinum_cnrnum_casenum_casetitle_list(search_result_soup)
+                        # for num in list_of_cinum_casenum:
+                        #     print(num)
+                        #     print()
                         # print(list_of_cinum_casenum)
                         # print('list_of_cinum_casenum:', list_of_cinum_casenum)
                         # print()
-                        for case_index, parameters in enumerate(list_of_cinum_casenum):
+                        for case_index, parameters in list(enumerate(list_of_cinum_casenum))[364:]:
                             print(f"Case # {case_index+1}/{len(list_of_cinum_casenum)} of case type {case_type} year {year}...")
                             # print("parameters:", parameters)
                             case_details_soup = get_case_details_from_parameters(parameters)
@@ -540,10 +566,11 @@ if __name__ == '__main__':
                             total_num_of_files += len(list_of_interim_order_parameters) if list_of_interim_order_parameters else 0
                             total_num_of_files += 1 if judgement_parameters else 0
 
-                            # interim_order_filename_list, judgement_filename = save_pdf_files(year, parameters['CNR Number'], list_of_interim_order_urls, judgement_url)
+                            interim_order_filename_list, judgement_filename = save_pdf_files(year, parameters['CNR Number'], list_of_interim_order_urls, judgement_url)
                             # judgement_text = extract_judgement_text_from_judgement_file(judgement_filename)
 
                             list_of_case_details.append(extract_case_details(parameters, case_details_soup, list_of_interim_order_urls, judgement_url))
+                            create_csv_dataset(list_of_case_details)
 
                             print()
 
@@ -553,8 +580,8 @@ if __name__ == '__main__':
                 print(f"Process for case type {case_type} completed...")
                 print()
 
-        except Exception as e:
-            print(e)
+        # except Exception as e:
+        #     print(e)
 
         finally:
             print(f"Total no. of cases: {total_num_of_cases}")

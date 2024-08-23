@@ -161,6 +161,7 @@ cython_debug/
 
 documents/
 new_documents/
+new_coduments/
 interim_order_documents/
 judgement_documents/
 chroma_db/
@@ -169,3 +170,4 @@ csv_handler.py
 document_formatter.py
 temp.txt
 output.csv
+test_for_char_exceed.py

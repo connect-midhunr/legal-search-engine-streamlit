@@ -11,7 +11,7 @@ from langchain_community.vectorstores import FAISS
 from langchain.memory import ConversationBufferMemory
 from langchain.chains.conversational_retrieval.base import ConversationalRetrievalChain
 from langchain_community.llms.ollama import Ollama
-from langchain_community.llms.huggingface_hub import HuggingFaceHub
+from langchain_huggingface import HuggingFaceEndpoint
 from langchain_google_genai import ChatGoogleGenerativeAI
 import google.generativeai as genai
 
@@ -84,7 +84,7 @@ def create_text_chunks(text):
 def create_vector_store(text_chunks):
   try:
     # embedding = OpenAIEmbeddings()
-    embedding = HuggingFaceBgeEmbeddings(model_name=huggingfacehub_embedding_model, model_kwargs={"device": "cpu"}, encode_kwargs={"normalize_embeddings": True})
+    embedding = HuggingFaceEmbeddings(model_name=huggingfacehub_embedding_model, model_kwargs={"device": "cpu"}, encode_kwargs={"normalize_embeddings": True})
     vector_store = FAISS.from_texts(texts=text_chunks, embedding=embedding)
     return vector_store
 
@@ -99,7 +99,7 @@ def create_chat_conversation(vector_store):
     # llm = ChatOpenAI(model_name=openai_model)
     # llm = Ollama(model=ollama_model, temperature=0.6)
     llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro-latest")
-    # llm = HuggingFaceHub(repo_id="microsoft/Phi-3-small-128k-instruct", huggingfacehub_api_token=huggingfacehub_api_token)
+    # llm = HuggingFaceEndpoint(repo_id="microsoft/Phi-3-small-128k-instruct", huggingfacehub_api_token=huggingfacehub_api_token)
     conversation_chain = ConversationalRetrievalChain.from_llm(
           llm=llm,
           retriever=vector_store.as_retriever(search_type = "mmr"),

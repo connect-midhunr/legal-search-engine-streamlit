@@ -11,12 +11,10 @@ import json
 import time
 import numpy as np
 import pandas as pd
-from googletrans import Translator
 from py3langid.langid import LanguageIdentifier, MODEL_FILE
 
 from enums import Languages
 
-translator = Translator()
 identifier = LanguageIdentifier.from_pickled_model(MODEL_FILE)
 identifier.set_languages([language.value for language in Languages])
 
@@ -65,15 +63,13 @@ def detect_language(message):
         return None
 
 # function to generate user-to-bot chat
-def generate_chat_from_user_question(user_question, language = "Detect Language"):
-    try:
-        lang_code = Languages[language.upper()].value if language.upper() in list(Languages.__members__.keys()) else detect_language(user_question)
-        
+def generate_chat_from_user_question(user_question):
+    try:        
         if st.session_state.conversation:
             st.session_state.chat_history.append(user_question)
-            question = translator.translate(user_question, dest='en').text
+            question = user_question
             response = st.session_state.conversation({'question': question + "Provide the answer in at least 60 words."})
-            answer = translator.translate(response['answer'], dest=lang_code).text
+            answer = response['answer']
             st.session_state.chat_history.append(answer)
             print(st.session_state.chat_history)
 
@@ -150,14 +146,10 @@ if __name__ == '__main__':
                     vector_store = create_vector_store(text_chunks)
                     st.session_state.conversation = create_chat_conversation(vector_store)
 
-            input, drop_down = st.columns([3, 1])
-            with input:
-                user_question = st.chat_input("Ask a question about your document")
-            with drop_down:
-                selected_language = st.selectbox("Select the language", list_of_languages, label_visibility="collapsed")
+            user_question = st.chat_input("Ask a question about your document")
             if user_question:
                 with st.spinner("Generating response..."):
-                    generate_chat_from_user_question(user_question, selected_language)
+                    generate_chat_from_user_question(user_question)
 
         else:
             st.write(header_template.replace("{{MSG}}", "Legal Docs Search"), unsafe_allow_html=True)

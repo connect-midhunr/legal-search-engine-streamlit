@@ -11,12 +11,6 @@ import json
 import time
 import numpy as np
 import pandas as pd
-from py3langid.langid import LanguageIdentifier, MODEL_FILE
-
-from enums import Languages
-
-identifier = LanguageIdentifier.from_pickled_model(MODEL_FILE)
-identifier.set_languages([language.value for language in Languages])
 
 def load_config(filename):
     with open(filename, 'r') as f:
@@ -38,9 +32,6 @@ list_of_case_titles = [dictionary['case_title'] for dictionary in all_documents[
 list_of_doc_ids = all_documents['ids']
 dict_of_options = {list_of_case_titles[num]:list_of_doc_ids[num] for num in range(len(list_of_case_titles))}
             
-list_of_languages = ['Detect Language']
-list_of_languages.extend([language.title() for language in Languages.__members__.keys()])
-
 # function to stream response message from the bot
 def stream_data(message):
     try:
@@ -50,16 +41,6 @@ def stream_data(message):
 
     except Exception as e:
         print(f"Exception occured in stream_data: {e}")
-        return None
-    
-# function to detect language of the text
-def detect_language(message):
-    try:
-        print("Detected language:", identifier.classify(message))
-        return identifier.classify(message)[0]
-
-    except Exception as e:
-        print(f"Exception occured in detect_language: {e}")
         return None
 
 # function to generate user-to-bot chat

@@ -4,6 +4,7 @@ sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 
 import streamlit as st
 from components import css, header_template, search_result_template, user_template, bot_template, alert_bot_template, generate_interim_orders_info, generate_judgement_info
+from document_search import get_query_results_from_documents
 from document_QnA import create_text_chunks, create_vector_store, create_chat_conversation
 import chromadb
 import os
@@ -28,9 +29,30 @@ client = chromadb.PersistentClient(path=f'{current_directory}/data')
 doc_collection = client.get_collection(name=db_name)
 
 all_documents = doc_collection.get()
-list_of_case_titles = [dictionary['case_title'] for dictionary in all_documents['metadatas']]
 list_of_doc_ids = all_documents['ids']
-dict_of_options = {list_of_case_titles[num]:list_of_doc_ids[num] for num in range(len(list_of_case_titles))}
+list_of_metadatas = all_documents['metadatas']
+dict_of_options = [{'doc_id': list_of_doc_ids[num], 'metadata':list_of_metadatas[num]} for num in range(len(list_of_doc_ids))]
+    
+# function to get query results
+def get_query_results(query, num_results):
+    valid_docs = []
+    for ind, option in enumerate(dict_of_options, start=1):
+        # print(f"{ind}. {option['metadata']['case_title'].lower()}")
+        # print("Query:", query.lower())
+        if query.lower() in option['metadata']['case_title'].lower():
+            option.update({'distance': 0.0})
+            valid_docs.append(option)
+
+    list_of_valid_doc_ids = [data['doc_id'] for data in valid_docs]
+    if len(valid_docs) < num_results:
+        query_results = get_query_results_from_documents(query, num_results, doc_collection)
+        for result in query_results:
+            if result['doc_id'] in list_of_valid_doc_ids:
+                query_results.remove(result)
+        valid_docs.extend(query_results[:num_results-len(valid_docs)])
+
+    print(valid_docs)
+    return valid_docs
             
 # function to stream response message from the bot
 def stream_data(message):
@@ -139,12 +161,13 @@ if __name__ == '__main__':
             search_document = st.text_input("Search and find relevant documents:")
             if search_document:
                 with st.spinner("Loading..."):
-                    result = doc_collection.query(query_texts=search_document, n_results=10)
+                    results = get_query_results(query=search_document, num_results=10)
+                    # result = doc_collection.query(query_texts=search_document, n_results=10)
                     # st.write(result)
 
-                    for num in range(len(result['ids'][0])):
-                        metadata = result['metadatas'][0][num]
-                        doc_id = result['ids'][0][num]
+                    for result_dict in results:
+                        metadata = result_dict['metadata']
+                        doc_id = result_dict['doc_id']
                         result_template = search_result_template.replace("{{CASE_TITLE}}", metadata['case_title'])
                         result_template = result_template.replace("{{CASE_TYPE}}", metadata['case_type'])
                         result_template = result_template.replace("{{CNR_NUMBER}}", metadata['cnr_num'])

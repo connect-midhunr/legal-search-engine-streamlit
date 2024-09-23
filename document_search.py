@@ -383,50 +383,67 @@ def write_document_content_to_txt_file(i, element):
     except Exception as e:
         print(f"Exception occured in write_document_content_to_txt_file: {e}")
         return None
+    
+# function to get query results based on similarities
+def get_query_results_from_documents(query, num_results, doc_collection):
+    try:
+        result = doc_collection.query(query_texts=query, n_results=num_results, include=['metadatas', 'distances'])
+
+        keys = ['doc_id', 'metadata', 'distance']
+        doc_ids = result['ids'][0]
+        metadatas = result['metadatas'][0]
+        distances = result['distances'][0]
+        zipped_list = list(zip(doc_ids, metadatas, distances))
+        dict_list = [dict(zip(keys, item)) for item in zipped_list]
+        sorted_dict_list = sorted(dict_list, key=lambda x: x['distance'])
+
+        return sorted_dict_list
+    except Exception as e:
+        print(f"Exception occured in get_query_results_from_documents: {e}")
+        return None
 
 if __name__ == '__main__':
     client = chromadb.PersistentClient(path="data")
     # sentence_transformer_ef = embedding_functions.SentenceTransformerEmbeddingFunction(model_name=embedding_model)
     doc_collection = client.get_or_create_collection(name=db_name)
 
-    list_of_court_cases = csv_to_list_of_dicts('output.csv')
+    # list_of_court_cases = csv_to_list_of_dicts('output.csv')
     # demo_data = {'CI Number': 'KLHC010000012011', 'CNR Number': '200100000012011', 'Case Number': 'Adml.S. 1/2011', 'Case Title': 'UNICORN MARINE SERVICES PVT.LTD.v/sOWNERS AND PARTIES INTERESTED IN THE VES', 'Case Type': 'Adml.S.', 'Case Status': 'DISPOSED', 'Filing Date': '06-05-2011', 'Registration Date': '06-05-2011', 'Under Act(s)': 'act1', 'Under Section(s)': 'sec1', 'Petitioner': 'UNICORN MARINE SERVICES PVT.LTD.', 'Respondent': 'OWNERS AND PARTIES INTERESTED IN THE VES', 'Judge': 'HONOURABLE MR.JUSTICE HARUN-UL-RASHID', 'Bench': 'bench1', 'History of Case Hearings': "[{'#': '1', 'Cause List Type': 'Daily List', 'Hon: Judge Name': 'HONOURABLE MR.JUSTICE P.BHAVADASAN', 'BusinessDate': '25-11-2011', 'NextDate(Tentative Date)': '04-05-2012', 'Purpose of Hearing': 'PETITIONS', 'Order': 'o1'}, {'#': '2', 'Cause List Type': 'Part Two', 'Hon: Judge Name': 'HONOURABLE MR.JUSTICE N.K.BALAKRISHNAN', 'BusinessDate': '04-05-2012', 'NextDate(Tentative Date)': '21-06-2012', 'Purpose of Hearing': 'PETITIONS', 'Order': 'o2'}, {'#': '3', 'Cause List Type': 'Part Two', 'Hon: Judge Name': 'HONOURABLE MR.JUSTICE HARUN-UL-RASHID', 'BusinessDate': '21-06-2012', 'NextDate(Tentative Date)': '22-06-2012', 'Purpose of Hearing': 'PETITIONS', 'Order': 'o3'}, {'#': '4', 'Cause List Type': 'Daily List', 'Hon: Judge Name': '2963-HONOURABLE THE AG.CHIEF JUSTICE MR.M.M.PAREED PILLAY', 'BusinessDate': '22-06-2012', 'NextDate(Tentative Date)': '26-06-2012', 'Purpose of Hearing': 'FOR SETTLEMENT', 'Order': 'o4'}, {'#': '5', 'Cause List Type': 'Part Two', 'Hon: Judge Name': 'HONOURABLE MR.JUSTICE HARUN-UL-RASHID', 'BusinessDate': '26-06-2012', 'NextDate(Tentative Date)': '26-06-2012', 'Purpose of Hearing': 'FOR ORDERS', 'Order': 'o5'}, {'#': '6', 'Cause List Type': 'type1', 'Hon: Judge Name': 'HONOURABLE MR.JUSTICE HARUN-UL-RASHID', 'BusinessDate': '26-06-2012', 'NextDate(Tentative Date)': 'date1', 'Purpose of Hearing': 'pup1', 'Order': 'o6'}]", 'Judgement Date': '26-06-2012', 'List of Interim Order URLs': "['https://hckinfo.kerala.gov.in/digicourt/Casedetailssearch/fileviewcitation?token=MjAwMTAwMDAwMDEyMDExXzEucGRm+&lookups=b3JkZXJzLzIwMTE=+&citationno=MjAxMjpLRVI6MjQ4OTU=', 'https://hckinfo.kerala.gov.in/digicourt/Casedetailssearch/fileviewcitation?token=MjAwMTAwMDAwMDEyMDExXzEucGRm+&lookups=b3JkZXJzLzIwMTE=+&citationno=MjAxMjpLRVI6MjQ4OTU=', 'https://hckinfo.kerala.gov.in/digicourt/Casedetailssearch/fileviewcitation?token=MjAwMTAwMDAwMDEyMDExXzEucGRm+&lookups=b3JkZXJzLzIwMTE=+&citationno=MjAxMjpLRVI6MjQ4OTU=']", 'Judgement URL': 'https://hckinfo.kerala.gov.in/digicourt/Casedetailssearch/fileviewcitation?token=MjAwMTAwMDAwMDEyMDExXzEucGRm+&lookups=b3JkZXJzLzIwMTE=+&citationno=MjAxMjpLRVI6MjQ4OTU='}
     # print(demo_data)
     # print()
     # print(create_document_text_content(list_of_court_cases[70]))
     
-    for i, case_details in enumerate(list_of_court_cases):
-        case_type = case_details['Case Type']
-        cnr_num = case_details['CNR Number']
-        case_title = case_details['Case Title']
-        list_of_interim_order_urls = eval(case_details['List of Interim Order URLs'])
-        judgement_url = case_details['Judgement URL']
+    # for i, case_details in enumerate(list_of_court_cases):
+    #     case_type = case_details['Case Type']
+    #     cnr_num = case_details['CNR Number']
+    #     case_title = case_details['Case Title']
+    #     list_of_interim_order_urls = eval(case_details['List of Interim Order URLs'])
+    #     judgement_url = case_details['Judgement URL']
 
-        print("Case no. ", i+1, ":", cnr_num)
+    #     print("Case no. ", i+1, ":", cnr_num)
 
-        doc_collection.add(
-            documents=[create_document_text_content(case_details)],
-            metadatas=[{"case_type": str(case_type), "cnr_num": str(cnr_num), "case_title": str(case_title), "list_of_interim_order_urls": f"{list_of_interim_order_urls}", "judgement_url": str(judgement_url)}],
-            ids=[f"id_{i+1}"]
-        )
-        # print(type(extract_and_join_text_from_pdfs(cnr_num, list_of_interim_order_urls, judgement_url)))
-        print()
+    #     doc_collection.add(
+    #         documents=[create_document_text_content(case_details)],
+    #         metadatas=[{"case_type": str(case_type), "cnr_num": str(cnr_num), "case_title": str(case_title), "list_of_interim_order_urls": f"{list_of_interim_order_urls}", "judgement_url": str(judgement_url)}],
+    #         ids=[f"id_{i+1}"]
+    #     )
+    #     # print(type(extract_and_join_text_from_pdfs(cnr_num, list_of_interim_order_urls, judgement_url)))
+    #     print()
 
-    # keyword = "nourinmol"
-    # print(f"Searching for '{keyword}'...")
-    # print()
-    # result = doc_collection.query(
-    #     query_texts=keyword,
-    #     n_results=10
-    # )
-    # # print("Result:", result['documents'][0])
-    # print("Type of Result:", type(result['documents'][0]))
-    # print("Length of Result:", len(result['documents'][0]))
-    # print()
-
-    print("Peek:", doc_collection.peek())
-    print("Count:", doc_collection.count())
+    keyword = "nourinmol"
+    print(f"Searching for '{keyword}'...")
     print()
+    result = get_query_results_from_documents(query=keyword, num_results=10)
+    # print("Doc IDs:", result['ids'][0])
+    # print("Metadatas:", result['metadatas'][0])
+    # print("Distances:", result['distances'][0])
+    print("Result:", result)
+    print()
+
+    # print("Peek:", [metadata['case_title'] for metadata in doc_collection.peek().get('metadatas')])
+    # print("Case titles:",  [metadata['case_title'] for metadata in doc_collection.get(include=['metadatas'])['metadatas']])
+    # print("Count:", doc_collection.count())
+    # print()
 
     # for element in result['metadatas'][0]:
     #     print(f"Metadata: {element['case_type']} {element['cnr_num']} {element['case_title']} {eval(element['list_of_interim_order_urls'])} {element['judgement_url']}")
